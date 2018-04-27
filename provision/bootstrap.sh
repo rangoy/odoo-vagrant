@@ -5,8 +5,9 @@
 # Mikke Zavala (github: mikkezavala).						  #
 ###############################################################
 
+
 ODOO_VERSION=11.0
-ODOO_RELEASE=20171021
+WKHTMLTOX_VERSION=0.12.4
 
 # You can change this to your HOME if that is the case
 MOUNT_DIR=/vagrant
@@ -29,24 +30,41 @@ sudo yum install -y python3-pydot python3-pyldap python3-pyparsing \
         python3-docutils python3-feedparser python3-gevent python3-greenlet python3-html2text python3-lxml
 
 # Install RPM & Install Package
-printf "Instaling ODOO RPM v${ODOO_VERSION} with release ${ODOO_RELEASE} this could take some time.";
-sudo rpm -Uhv https://nightly.odoo.com/${ODOO_VERSION}/nightly/rpm/odoo_${ODOO_VERSION}.${ODOO_RELEASE}.noarch.rpm
+printf "Instaling ODOO RPM v${ODOO_VERSION} this could take some time.";
 
-# DataBase Setup
-sudo postgresql-setup initdb
+printf "Adding ODOO repository"
+sudo dnf config-manager --add-repo=https://nightly.odoo.com/${ODOO_VERSION}/nightly/rpm/odoo.repo
+printf "Installing ODOO from repository"
+sudo dnf install -y odoo
+
+printf DataBase Setup
+
+#changing workdir to make postgres commands work
+cd /tmp
+
+#sudo postgresql-setup initdb
+sudo postgresql-setup --initdb --unit postgresql
 sudo systemctl enable postgresql && sudo systemctl start postgresql
 
-# Using default ODOO Pass otherwise verify your config
+printf Using default ODOO Pass otherwise verify your config
 sudo -u postgres psql -c "CREATE USER ${DB_USER} WITH password '${DB_PASSWORD}';"
 sudo -u postgres psql -c "ALTER USER ${DB_USER} WITH SUPERUSER;"
 
-# Remove pre-defined config and run custom one delete if exists)
+printf Remove pre-defined config and run custom one delete if exists
 sudo rm /etc/odoo/odoo.conf \
     && sudo rm -f ${CONFIG_FILE} \
     && sudo cp ${PROVISION_DIR}/odoo.conf.template ${CONFIG_FILE}
 
-# Replace placeholders and Symlink-it to odoo def
+printf Replace placeholders and Symlink-it to odoo def
 sudo sed -i "s|__HOME__|$MOUNT_DIR|g" ${CONFIG_FILE} && sudo ln -s ${CONFIG_FILE} /etc/odoo/odoo.conf
 
-# Run this baby...!
+printf Run this baby...!
 sudo systemctl enable odoo && sudo systemctl restart odoo
+
+printf Installing wkhtmltox (inspired by https://gist.github.com/AndreasFurster/ebe3f163d6d47be43b72b35b18d8b5b6)
+curl -O -L https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/${WKHTMLTOX_VERSION}/wkhtmltox-${WKHTMLTOX_VERSION}_linux-generic-amd64.tar.xz
+unxz wkhtmltox-${WKHTMLTOX_VERSION}_linux-generic-amd64.tar.xz
+tar -xvf wkhtmltox-${WKHTMLTOX_VERSION}_linux-generic-amd64.tar
+sudo mv wkhtmltox/bin/* /usr/local/bin/
+rm -rf wkhtmltox
+rm -f wkhtmltox-${WKHTMLTOX_VERSION}_linux-generic-amd64.tar

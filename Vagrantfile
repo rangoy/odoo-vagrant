@@ -7,9 +7,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.box_version = "20170705"
 
     config.vm.synced_folder ".", "/vagrant",
-        id: "core",
-        :nfs => true,
-        :mount_options => ['nolock,vers=3,udp,noatime']
+        id: "core"#,
+#        :nfs => true,
+ #       :mount_options => ['nolock,vers=3,udp,noatime']
 
     config.vm.network "private_network", ip: "192.168.100.101"
     config.vm.provider :virtualbox do |vb|
